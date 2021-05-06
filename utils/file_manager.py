@@ -11,7 +11,10 @@ class FileManager():
                             'daily_5year': {'directory': '../data/stock_data/daily_5year',
                                             'params':['day', '5year']},
                             '5min_weekly':{'directory': '../data/stock_data/5min_weekly',
-                                           'params':['5minute', 'week']}
+                                           'params':['5minute', 'week']},
+                            'hour_3month':{'directory': '../data/stock_data/hour_3month',
+                                           'params':['hour', '3month']},
+
                             }
 
         self.selected_resolution = self.resolutions[selected_resolution_key]
@@ -61,6 +64,31 @@ class FileManager():
         
         return all_data
         
+    def update_disk(self,r,tickers):
+
+        #TODO: Change to append instead of write
+
+        all_data = []
+
+        if type(tickers) == str:
+            tickers = [tickers]
+            
+
+        for ticker in tqdm(tickers, desc = 'Writing Files..'):
+            
+            data = self.get_data(r,ticker)
+
+            if f'{ticker}.csv' in os.listdir(self.selected_resolution['directory']):
+                old_data = pd.read_csv(os.path.join(self.selected_resolution['directory'], f'{ticker}.csv')).set_index('begins_at')
+                
+                data = pd.concat([old_data, data])
+
+                data = data[~ data.index.duplicated(keep='last')].sort_index()
+
+            data.to_csv(os.path.join(self.selected_resolution['directory'], f'{ticker}.csv'))
+            all_data.append(data)
+        
+        return all_data
 
     def read_from_disk(self,tickers):
         
@@ -70,9 +98,13 @@ class FileManager():
             tickers = [tickers]
             
         for ticker in tqdm(tickers, desc = 'Reading Files..'):
-            all_data.append(pd.read_csv(os.path.join(self.selected_resolution['directory'], f'{ticker}.csv')).set_index('begins_at'))
+            data = pd.read_csv(os.path.join(self.selected_resolution['directory'], f'{ticker}.csv')).set_index('begins_at')
+            data = data[~ data.index.duplicated(keep='last')].sort_index()
+            all_data.append(data)
 
-        all_data = pd.concat(all_data).pivot(columns = 'symbol')
+        return all_data
+
+        all_data = pd.concat(all_data).reset_index().drop_duplicates(['begins_at', 'symbol']).set_index('begins_at').pivot(columns = 'symbol')
 
         return all_data
         
