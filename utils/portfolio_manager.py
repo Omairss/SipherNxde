@@ -9,8 +9,8 @@ class PortfolioManager():
 		self.r = r
 
 		if load == True:
-			load_portfolio()
-			load_watchlists()
+			self.load_portfolio()
+			self.load_watchlists()
 
 
 	def load_portfolio(self):
@@ -40,3 +40,9 @@ class PortfolioManager():
 
 		return self.all_watchlists
 
+
+	def create_name_dict(self):
+
+		self.name_dict = {}
+		self.name_dict.update(self.all_watchlists[['symbol', 'name']].set_index('symbol').to_dict()['name'])
+		self.name_dict.update(self.portfolio_df[['name']].to_dict()['name'])
